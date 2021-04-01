@@ -25,5 +25,3 @@ foreach ($server in $servers)
 		}
 	else 
 		{ Add-Content -Path "$path\scomlog.log"" -Value "$time $server is not responding" }	#log, if server itself was down
-			
-}
