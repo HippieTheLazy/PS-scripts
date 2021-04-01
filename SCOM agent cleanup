@@ -4,8 +4,8 @@ $servers = Get-Content -Path "$path\list.txt" 	 #a file with the list of servers
 foreach ($server in $servers)
 {
 	$time = get-date -Format "MM/dd HH:mm:ss"	#loading current time, will be used to log what's going on
-	
-    if (Test-Connection -ComputerName $server -Quiet)	#if the server responds
+
+	if (Test-Connection -ComputerName $server -Quiet)	#if the server responds
 		{
 		if ( Get-Service -ComputerName $server | Where-Object { $_.Name -eq "HealthService" }).Status -eq "Stopped" )	#and SCOM service is down
 			{
@@ -15,7 +15,7 @@ foreach ($server in $servers)
 			Invoke-Command -ComputerName $server -ScriptBlock {Start-Service -Name "HealthService"}	#starting up a service
 			Start-Sleep -Seconds 2 #waiting a little bit before checking if the service went up
 			
-			if ( (Get-Service -ComputerName $server | Where-Object { $_.Name -eq "HealthService" }).Status -eq "Running") #checking if SCOM's up
+			if ( (Get-Service -ComputerName $server | Where-Object { $_.Name -eq "HealthService" }).Status -eq "Running" ) #checking if SCOM's up
 				{ Add-Content -Path "$path\scomlog.log" -Value "$time Agent started on $server" }	#logging the service has started
 			else
 				{ Add-Content -Path "$path\scomlog.log" -Value "$time Manual check on $server may be needed" } #or not
@@ -25,3 +25,4 @@ foreach ($server in $servers)
 		}
 	else 
 		{ Add-Content -Path "$path\scomlog.log"" -Value "$time $server is not responding" }	#log, if server itself was down
+}
