@@ -1,0 +1,38 @@
+Add-PSSnapin Citrix.* #importing Citrix module for PS
+
+$path = [working_directory] #variable for where the things are
+$list = Get-Content -Path '$path\list.txt' #list of workers to check
+
+foreach ( $server in $list )
+	{
+	$load = $null #cleares the previous value of the variable saving the worker's workload
+
+	$date = get-date -format 'MM/dd/yyyy HH:mm:ss'  #checks the currnet time
+	$folder =  Get-XAServer -ServerName $server | select -ExpandProperty FolderPath #saves the silo the worker belonges to
+	
+	$load = Get-XAServerLoad -ServerName $server | select -ExpandProperty Load  #saving the current worload of the server
+	if ($load -eq $null)  #if the server does't respond, the variable's value stays null, so that's pretty good way to test connection
+		{ 
+		$load = "server not responding" #value returned by Get-XAServerLoad is a string, so in case server's down, we can put a right comment
+		Add-Content -Path '$path\output.txt' -Value "$date, $server, $folder, $load" #logging time, hostname and comment into the log file
+		$load = $null
+		}
+	else { Add-Content -Path '$path\output.txt' -Value "$date, $server, $folder, $load" }  #if cmdlet returns a proper value, it's logged
+		
+
+	if ( Test-Path "$path\temp\$server.txt" ) #current servers' workalads are also saved into separated files, one for each server, and summarized
+		{
+		$load = [int]$load  #converts string into int
+		
+		$sum = Get-Content -Path "$path\temp\$server.txt" #loads earlier value
+		$sum = [int]$sum
+		$sum = $sum + $load #sums values up
+		
+		Set-Content -Path "$path\temp\$server.txt" -Value $Sum #and saves
+		}
+	else  #if the file wasn't there in the first place, it creates one
+		{
+		$load=[int]$load
+		Add-Content -Path "$path\temp\$server.txt" -Value "$load"		
+		}
+	}
