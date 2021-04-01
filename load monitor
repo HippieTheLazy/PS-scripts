@@ -1,0 +1,27 @@
+Add-PSSnapin Citrix.*
+
+$list = Get-Content -Path 'C:\temp\citrix team ad hoc scripts\list.txt' 											#lista serwerów do sprawdzenia musi być zapisana w pliku tekstowym
+
+foreach ( $server in $list )
+	{
+	$date = get-date -format 'MM/dd/yyyy HH:mm:ss'																	            #wczytanie czasu, służy do późniejszego logowania
+	$folder =  Get-XAServer -ServerName $server | select -ExpandProperty FolderPath							#zaciąga silos
+	$load = Get-XAServerLoad -ServerName $server | select -ExpandProperty Load									#sprawdza obciążenie
+	
+	Add-Content -Path 'C:\temp\citrix team ad hoc scripts\output.txt' -Value "$date, $server, $folder, $load"		#loguje zmienne do głównego loga, dopisując kolejno dane
+	
+	if ( Test-Path "C:\temp\citrix team ad hoc scripts\temp\$server.txt" )											#sprawdza, czy istnieje plik do zapisania sumy obciążenia
+		{
+		$load = [int]$load																							#konwertuje zmienną przechowującą obciążenie z domyślnego stringa na int
+		
+		$sum = Get-Content -Path "C:\temp\citrix team ad hoc scripts\temp\$server.txt"			  		#kilka linijek sumujących poprzednie obciążenia z obecnym
+		$sum = [int]$sum
+		$sum = $sum + $load
+		
+		Set-Content -Path "C:\temp\citrix team ad hoc scripts\temp\$server.txt" -Value $Sum				#podmiana zawartości pliku na obecną sumę obciążenia dla serwera
+		}
+	else 
+		{
+		Add-Content -Path "C:\temp\citrix team ad hoc scripts\temp\$server.txt" -Value "$load"		#przy pierwszym przebiegu skryptu nie istnieją pliki z sumami, więc je tworzy
+		}
+	}
