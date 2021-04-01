@@ -1,0 +1,29 @@
+$path = [path_where_the_things_should_be_placed]
+$servers = Get-Content -Path "$path\list.txt" 	 #a file with the list of servers to be checked
+
+foreach ($server in $servers)
+{
+	$time = get-date -Format "MM/dd HH:mm:ss"	#loading current time, will be used to log what's going on
+	
+    if (Test-Connection -ComputerName $server -Quiet)	#if the server responds
+		{
+		if ( Get-Service -ComputerName $server | Where-Object { $_.Name -eq "HealthService" }).Status -eq "Stopped" )	#and SCOM service is down
+			{
+			Remove-Item -Path "\\$server\c$\Program Files\Microsoft Monitoring Agent\Agent\Health Service State\Health Service Store\*.*" -Force	#cleaning up agent's cache directory
+			Start-Sleep -Seconds 2	#waiting some time just in case
+			
+			Invoke-Command -ComputerName $server -ScriptBlock {Start-Service -Name "HealthService"}	#starting up a service
+			Start-Sleep -Seconds 2 #waiting a little bit before checking if the service went up
+			
+			if ( (Get-Service -ComputerName $server | Where-Object { $_.Name -eq "HealthService" }).Status -eq "Running") #checking if SCOM's up
+				{ Add-Content -Path "$path\scomlog.log" -Value "$time Agent started on $server" }	#logging the service has started
+			else
+				{ Add-Content -Path "$path\scomlog.log" -Value "$time Manual check on $server may be needed" } #or not
+			}
+		else 
+			{ Add-Content -Path "$path\scomlog.log" -Value "$time Agent works properly on $server" }	#if the SCOM was running in the first place, log that too
+		}
+	else 
+		{ Add-Content -Path "$path\scomlog.log"" -Value "$time $server is not responding" }	#log, if server itself was down
+			
+}
