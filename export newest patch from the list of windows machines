@@ -1,0 +1,17 @@
+$location = "..."
+$list     = Get-Content -Path "$location\list.txt"
+
+foreach ( $server in $list ) 
+    {
+    if ( Test-Connection -ComputerName $server -Quiet )
+        {
+        try {
+            $patch       = Get-HotFix -ComputerName $server | Sort-Object -Property InstalledOn -Descending | select -First 1
+            $HotFix      = $patch.HotFixID
+            $Installed   = $patch.InstalledOn
+            Add-Content -Path "$location\patches.csv" -Value "$server,$HotFix,$Installed"
+            }
+        catch { Add-Content -Path "$location\patches.csv" -Value "$server couldn't return patches" }
+        }
+    else { Add-Content -Path "$location\patches.csv" -Value "$server couldn't be contacted" }
+    }
