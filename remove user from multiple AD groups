@@ -1,0 +1,9 @@
+$user = "..." #samname of the account we want to remove from the groups
+$wantedgroups = Get-Content -path "..." #loading the list of groups
+foreach ($adgroup in $wantedgroups)
+    {
+    try 
+        { Remove-ADGroupMember -Identity $adgroup -Members $user -Confirm $false} #removing user from the group, -confirm $false should overwrite messages
+    catch
+        { Write-Host "Something went wrong with $adgroup" } #throws a warning if something's wrong
+    }
