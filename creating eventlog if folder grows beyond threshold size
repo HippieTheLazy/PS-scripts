@@ -1,0 +1,15 @@
+$path = "\\DEFRA1SPNA004.groupad1.com\TIER0_DEFRA1SPCTXSMB_UserProfiles_1\CitrixFRA_UPM_HSD"  #monitored share path
+$limit = 240  #set the threshold in GB
+
+$size = "{0:N2} GB" -f ((Get-ChildItem $path -Recurse | Measure-Object -Property Length -Sum -ErrorAction Stop).Sum / 1GB)  #measuring how large the folder is
+
+$value = $size -replace " GB" , ""   #formatting the output from string to int
+$value = $value -replace " " , ""
+$value = $value -replace "," , "."
+$value = [single]$value
+
+if ($value -gt $limit )              #check if the size hits the limit
+    {                                #if it does, an event is created
+    $message = "Share $path has exeeded limit of $limit GB and now weights $size"
+    Write-EventLog -LogName "Application" -Source "SelfServicePlugIn" -EventId 4666 -EntryType Information -Message "$message"
+    }
