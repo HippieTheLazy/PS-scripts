@@ -1,0 +1,27 @@
+$path =  "path"                                           									                #directory, where the profiles are
+$directory = "\\XXXX\Profiles\Tools\Citrix scripts\profiles_cleanup"                        #directory, where to put operational data
+$profiles = Get-ChildItem $path | Where-Object Attributes -EQ "Directory" | select BaseName #variable holding the list of profiles held in the profiles' share
+
+foreach ( $username in $profiles )                                                          #a loop selecting old profiles only for the further operations...
+    {
+    $temp = ($username).BaseName                                                            #...that mean profiles that have "old" or two digits next to each other...
+    if ( $temp -like "*.old*" -or                                                           #...as this is the best way do select such profiles automatically
+         $temp -like "*_old*" -or
+         $temp -like "* old*" -or 
+         $temp -like "_[0-9][0-9]_" -or
+         $temp -like ".[0-9][0-9]." -or
+         $temp -like " [0-9][0-9] "
+        ) 
+        { Add-Content -Path "$directory\profiles.txt" -Value "$temp" }                      #selected profiles are exported to the temporary txt file so the script can be lunched part by part...
+    }                                                                                       #...and the list can be checked the protein way
+
+$oldprofiles = Get-Content -Path "$directory\profiles.txt"                                  #placing the selected, old profiles into the variable
+foreach ( $item in $oldprofiles )                                                           #looping through, looking for profiles unused for a month at least
+    {
+    if ( (Get-Item -Path "$path\$item").LastWriteTime -lt (Get-Date).AddMonths(-1) ) 
+        {
+        Add-Content -Path "$directory\trouble.txt" -Value "$item" 
+        $toBeRemoved  = "$path\$item"                                                       #if such profile is found...
+        Remove-Item -Path "$toBeRemoved" -Recurse -Force # -ErrorAction SilentlyContinue    #...it is erased
+        }
+    }
