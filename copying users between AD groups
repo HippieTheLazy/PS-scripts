@@ -1,0 +1,10 @@
+$sourcegroup = "..."
+$destingroup = "..."
+
+$users = (Get-ADGroupMember -Identity $sourcegroup).samAccountName
+foreach ($user in $users)
+    {
+    try {Add-ADGroupMember -Identity $destingroup -Members $user }
+    catch { Write-Host "Something went wrong with adding $user" }	
+    }
+ 
