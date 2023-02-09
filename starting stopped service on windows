@@ -1,0 +1,19 @@
+$srvname = "TermServLicensing"                          #example of the service
+$scriptLocation = "..."
+$logging = "$scriptLocation\licensingRestart.log"       #setting up log file
+$time = get-date -Format "MM/dd HH:mm:ss"
+
+#part of the script that checks if the service is stopped - if it is, script will bring it up, logging the events
+
+if ( (Get-Service | Where-Object { $_.Name -eq $srvname }).Status -eq "Stopped")
+    {
+
+    Add-Content -Path $logging -Value "$time Licensing service has been found stopped"
+
+    Start-Service -Name $srvname
+    Start-Sleep -Seconds 15
+
+    if ( (Get-Service | Where-Object { $_.Name -eq $srvname }).Status -eq "Running")
+        { Add-Content -Path $logging -Value "$time Licensing service has been started" }
+
+    }
