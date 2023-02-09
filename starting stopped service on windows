@@ -17,3 +17,43 @@ if ( (Get-Service | Where-Object { $_.Name -eq $srvname }).Status -eq "Stopped")
         { Add-Content -Path $logging -Value "$time Licensing service has been started" }
 
     }
+#declarations of the variables - service name, script's location and its name, current time
+
+$srvname = "TermServLicensing"
+$scriptLocation = "C:\Atos"
+$logging = "$scriptLocation\licensingRestart.log"
+$time = get-date -Format "MM/dd HH:mm:ss"
+
+#part of the script that checks if the service is stopped - if it is, script will bring it up, logging the events
+
+if ( (Get-Service | Where-Object { $_.Name -eq $srvname }).Status -eq "Stopped")
+    {
+
+    Add-Content -Path $logging -Value "$time Licensing service has been found stopped"
+
+    Start-Service -Name $srvname
+    Start-Sleep -Seconds 15
+
+    if ( (Get-Service | Where-Object { $_.Name -eq $srvname }).Status -eq "Running")
+        { Add-Content -Path $logging -Value "$time Licensing service has been started" }
+
+    }
+
+#in case the process stuck, the script will terminate the service and start it up
+
+if ( (Get-Service | Where-Object { $_.Name -eq $srvname }).Status -eq "Stopping")
+    {
+    
+    Add-Content -Path $logging -Value "$time Licensing service has been found stuck stopping"
+    
+    $srvPID = Get-WmiObject -Class Win32_Service -Filter "Name LIKE '$srvname'" | Select-Object -ExpandProperty ProcessId
+    Stop-Process -id $srvPID -Force
+    Start-Sleep -Seconds 5
+
+    Start-Service -Name $srvname
+    Start-Sleep -Seconds 15
+
+    if ( (Get-Service | Where-Object { $_.Name -eq $srvname }).Status -eq "Running")
+        { Add-Content -Path $logging -Value "$time Licensing service has been started" }
+
+    } 
