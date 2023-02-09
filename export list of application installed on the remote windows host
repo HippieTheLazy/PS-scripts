@@ -1,0 +1,22 @@
+$location = "..."
+$list     = Get-Content -Path "$location\list.txt"
+
+foreach ( $server in $list )
+    {
+    if ( Test-Connection -ComputerName $server -Quiet )
+        {
+        try {
+            $item = Invoke-Command -ComputerName $server { Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Sort-Object -Property DisplayName }
+  
+            foreach ($record in $item)
+                { 
+                $appname =  $record.displayname
+                $version =  $record.displayversion
+    
+                Add-Content -Path "$location\result.csv" -Value "$server;$appname;$version"
+                }
+            }
+        catch { Add-Content -Path "$location\result.csv" -Value "$server; couldn't get the registry entries" }
+        }
+    else { Add-Content -Path "$location\result.csv" -Value "$server; couldn't be contacted" }
+    }
