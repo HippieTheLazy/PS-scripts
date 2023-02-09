@@ -1,0 +1,30 @@
+$outputDir = "..."                                                                                 			    #setting up working directory of the script
+$list = Get-Content -Path "$outputDir\list.txt"                                                     				#loading the list of hostnames to be checked
+$outputDate = Get-Date -format yyyy.MM.dd_HH.mm                                                             #geting the time when the script starts, used for naming of the output file
+
+$ScriptBlock = { Get-WmiObject -Namespace root\Microsoft\SecurityClient -class AntimalwareHealthStatus |    #core of the script - getting the values of EDR propertis from the corresponding WMI datasore
+                 select Version, EngineVersion, AntivirusSignatureVersion, AntivirusSignatureUpdateDateTime, AntivirusEnabled }   
+
+foreach ( $servername in $list )                                                                            #a loop itering through the loaded hostnames is lunched
+    {
+    try                                                                                                     #this section gets all the values needed for the given hostname
+        {
+        $temp = Invoke-Command -ComputerName $servername -ScriptBlock $ScriptBlock                          #lunching rhe core code remotely
+                   
+        $temp.AntivirusSignatureUpdateDateTime = $temp.AntivirusSignatureUpdateDateTime -replace ".000Z","" #altering the date-time string so it can be perecived as a proper value
+        $temp.AntivirusSignatureUpdateDateTime = $temp.AntivirusSignatureUpdateDateTime -replace "T"," "
+
+        $output = [PSCustomObject]@{                                                                        #creating a custom object that holds only the needed information
+             Hostname                         = $temp.PSComputerName                                        #an object is recreated with every iteration of the loop
+             ClientVersion                    = $temp.Version
+             EngineVersion                    = $temp.EngineVersion
+             AntivirusSignatureVersion        = $temp.AntivirusSignatureVersion
+             AntivirusSignatureUpdateDateTime = $temp.AntivirusSignatureUpdateDateTime
+             AntivirusEnabled                 = $temp.AntivirusEnabled                                      #if some of the fields aren't neeed anymore, those can be simply commented
+            }
+
+        $output | Export-Csv -Path "$outputDir\export_$outputDate.csv" -NoTypeInformation -Append           #exporting the output to the csv file of the given name
+        
+        }
+    catch { Add-Content -Path "$outputDir\export_$outputDate.csv" -Value "$servername cannot be scanned" }  #in case hostname cannot be scanned, for whatever the reason, a warning entry is added to the csv instead of desired values
+    }
