@@ -1,0 +1,10 @@
+$wantedgroups = Get-Content -path "..." #list of target groups
+$wantedusers  = Get-Content -path "..." #list of users we want to be removed
+foreach ($adgroup in $wantedgroups)
+    {
+        foreach ($username in $wantedusers)
+        {
+        try   { Remove-ADGroupMember -Identity $adgroup -Members $username -Confirm $false}
+        catch { Write-Host "Something went wrong with removing $username from $adgroup" }
+        }
+    }
