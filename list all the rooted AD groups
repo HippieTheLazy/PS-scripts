@@ -20,16 +20,16 @@ $group = "....................." #declaration of AD grop we want to examine
 $path = "..."
 
 
-if ( Get-Variable -Name stack -ErrorAction SilentlyContinue ) { Clear-Variable stack }  				#in case this is another intance of a script - previosu outputs are cleared 
+if ( Get-Variable -Name stack -ErrorAction SilentlyContinue ) { Clear-Variable stack }  #in case this is another intance of a script - previosu outputs are cleared 
 if ( Get-Variable -Name checked -ErrorAction SilentlyContinue ) { Clear-Variable checked }
 if ( Get-Variable -Name ToBeChecked -ErrorAction SilentlyContinue ) { Clear-Variable ToBeChecked }
 
-[array]$ToBeChecked = List-Rooted($group) 																#first input for the checking loop
-$stack = $stack + $ToBeChecked 																			#adding first checked groups to the stack of all the groups nested in the main group
+[array]$ToBeChecked = List-Rooted($group)   #first input for the checking loop
+$stack = $stack + $ToBeChecked  #adding first checked groups to the stack of all the groups nested in the main group
 
 $continue = "True"
 
-while ( $continue -eq "True" )										 									#loop returning stack variable, holding all the nested within groups
+while ( $continue -eq "True" )  #loop returning stack variable, holding all the nested within groups
     {
 
     foreach ( $item in $ToBeChecked )
