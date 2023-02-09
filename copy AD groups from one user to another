@@ -1,0 +1,10 @@
+$orginaluser = "..." #pretty selfexplaining
+$destinuser	 = "..."
+$wantedgroups = (Get-ADPrincipalGroupMembership $orginaluser).name  #reading AD groups orginal user has
+foreach ($adgroup in $wantedgroups)
+    {
+    try 
+        { Add-ADPrincipalGroupMembership -Identity $destinuser -MemberOf $adgroup } #adding groups to the another user
+    catch
+        { Write-Host "Something went wrong with $adgroup" } #throws an error if somethig's wrong
+    }
