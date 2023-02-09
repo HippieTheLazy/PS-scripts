@@ -1,0 +1,18 @@
+Add-PSSnapin Citrix.*                    #adding citrix snapin
+
+##########################################resetting unregistered workers
+$list = (Get-BrokerDesktop | Where-Object { ($_.RegistrationState -eq 'Unregistered') -and ($_.PowerState -eq 'On') -and ($_.InMaintenanceMode -eq 0) }).MachineName
+  #line above reads the list of unregistered workers not being in the MM
+foreach ($item in $list)                 #resetting workers one by one, with 30 seconds of delay in between
+    {
+    New-BrokerHostingPowerAction -Action Restart -MachineName $item
+    Start-Sleep -Seconds 30
+    }
+
+##########################################booting powered down workers
+$list = (Get-BrokerDesktop | Where-Object { ($_.PowerState -eq 'Off') -and ($_.InMaintenanceMode -eq 0) }).MachineName
+foreach ($item in $list)
+    {
+    New-BrokerHostingPowerAction -Action TurnOn -MachineName $item
+    Start-Sleep -Seconds 30
+    }
