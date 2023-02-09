@@ -1,0 +1,16 @@
+$path = "..." #directory we want to monitor
+$limit = 240  #hreshold in GB
+
+$size = "{0:N2} GB" -f ((Get-ChildItem $path -Recurse | Measure-Object -Property Length -Sum -ErrorAction Stop).Sum / 1GB)  #measuring the folder 
+
+$value = $size -replace " GB" , ""   #a few lines formatting the output from the string to int
+$value = $value -replace " " , ""
+$value = $value -replace "," , "."
+$value = [single]$value
+
+if ($value -gt $limit )
+    {
+    $message = "Share $path has exeeded limit of $limit GB and now weights $size"
+    Write-EventLog -LogName "Application" -Source "SelfServicePlugIn" -EventId 4666 -EntryType Information -Message "$message"
+    #event ID was agreed with the monitoring team
+    }
