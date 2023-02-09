@@ -1,0 +1,15 @@
+function List-Rooted  #declaration of an function extracting groups nested in the one we're checking
+    {
+    param($root)  #parameter for input group
+
+    $list = (Get-ADGroupMember -Identity $root | where { $_.objectClass -eq 'group' }).SamAccountName #variable holding nested groups
+    return $list  #and returns it as a functcion's output
+    }
+
+function List-Users #declaration of an function extracting users from the group we're checking
+    {
+    param($root)  #parameter for input group
+
+    $list = (Get-ADGroupMember -Identity $root | where { $_.objectClass -eq 'user' }).SamAccountName  #variable holding nested groups
+    return $list  #and returns it as a functcion's output
+    }
