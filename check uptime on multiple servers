@@ -1,0 +1,11 @@
+$pass = Get-Credential                                            #saving the credentials for the connection - if needed
+$list = Get-Content -Path "[...]"                                 #file with the list of targets
+
+foreach ( $item in $list )
+    {                                                             #script block below gets the uptime from the target and formats it into readable format
+    $uptime = Invoke-Command -ComputerName $item -Credential $pass -ScriptBlock { [Management.ManagementDateTimeConverter]::ToDateTime((Get-WmiObject Win32_OperatingSystem).LastBootUpTime) }
+    Write-Host ""
+  	Write-Host "$item"
+    Write-Host $uptime
+    Write-Host ""
+    }
