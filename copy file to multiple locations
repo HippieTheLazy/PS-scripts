@@ -1,0 +1,14 @@
+$source = "[...]"                                                             #source directory
+$file   = "$source\[...]"                                                     #filename
+$list  =  Get-Content -Path "$source\list.txt"                                #file with the list of computers where the file should be copied to
+
+foreach ( $item in $list )
+    {
+    $destination = "\\$item\c$\temp"                                          #assumed we're copying the file to the temp folder
+    try 
+        { 
+        Copy-Item -Path $file -Destination $destination                       #an attempt to copy the file
+        Write-Host "File should had been copied to $item"                     #notify, if successful
+        }
+    catch { Write-Host "Looks like there were error while coping to $item" }  #notify, is something goes wrong
+    }
