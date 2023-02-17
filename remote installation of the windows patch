@@ -1,0 +1,8 @@
+$list  =  Get-Content -Path "C:\temp\list.txt"                                                              #list of the target servers
+
+foreach ( $item in $list )
+    {
+    Enter-PSSession -ComputerName $item                                                                     #creating a link to the remote host
+    & wusa C:\temp\windows10.0-kb5021654-x64_621cabced26964195b4b4e4e725be98399b3fd12.msu /quiet /norestart #example of the patch installation - without reboot afterwards
+    Exit-PSSession                                                                                          #closing the link
+    } 
