@@ -1,0 +1,148 @@
+{#CITRIX PART - LAUNCHED FROM THE DELIVERY CONTROLLER
+$path = ###
+
+Add-PSSnapin Citrix.*                                                                          #citrix snap-in
+
+#loading unregistered workers
+$list = (Get-BrokerDesktop | Where-Object { ($_.RegistrationState -eq 'Unregistered') -and ($_.PowerState -eq 'On') -and ($_.InMaintenanceMode -eq 0) -and ($_.HostedMachineName -notmatch '###') }).MachineName
+foreach ($item in $list) { Add-Content -Path "$path\unreg.txt" -Value $item }
+
+#loading off vms
+$list = (Get-BrokerDesktop | Where-Object { ($_.PowerState -eq 'Off') -and ($_.InMaintenanceMode -eq 0) -and ($_.HostedMachineName -notmatch '###') }).MachineName
+foreach ($item in $list) { Add-Content -Path "$path\off.txt" -Value $item }
+
+}#\CITRIX PART	
+
+{#VMWARE PART - LAUNCHED FROM WHERE POWERCLI IS PRESENT AND CAN CONNECT TO THE VS
+#general variables
+
+$path = "###"                                                                                  #script directory
+$log  = "$path\log.txt"                                                                        #logfile location
+$chkf = "$path\checked.txt"                                                                    #today's list
+
+$bb   = Get-Content -Path "$path\vc1.txt"                                                      #list of workers from the first vc
+$lb   = Get-Content -Path "$path\vc2.txt"                                                      #list of workers from the another vc
+
+$cdir = ###                                                                                    #citrix script locations
+
+####################################################################
+#logging function - adds timestamp and commend from the main body
+
+function Time-Log
+    {
+    param ( $comment )
+    
+    $TimeStamp = Get-Date -format 'dd/mm/yyyy HH:mm:ss'
+    "$TimeStamp $comment" >> $log 
+    }
+
+####################################################################
+#initiate PS for VMware and delete an old check file
+
+if ( (Get-Item $log).LastWriteTime -gt (Get-Date).AddHours(-12) )                              #removing the check file if it's older than 12 hours
+    {
+    Remove-Item -Path $chkf
+    Time-Log ( "Yesterday's check file has been removed" )
+    }
+
+cd "C:\Program Files (x86)\VMware\Infrastructure\PowerCLI\Scripts"                             #initiating PowerCLI
+
+try
+    {
+    .\Initialize-PowerCLIEnvironment.ps1
+    Time-Log ( "Script has initialized PowerCLI" )
+    }
+catch 
+    {
+    Time-Log ( "PowerCLI has not been initialized, terminating the script" )                   #logging in case of an error
+    Exit
+    }
+
+#####################################################################
+#basic script management
+
+if ( Test-Path -Path "$cdir\unreg.txt" ) { $uctx = Get-Content -Path "$cdir\unreg.txt" }       #checking if there are unregistered workers and uploading list
+if ( Test-Path -Path "$cdir\off.txt" )   { $octx = Get-Content -Path "$cdir\off.txt"   }       #checking if there are powered down workers and uploading list
+
+
+$list = $uctx + $octx                                                                          #merging the lists
+
+if ( $list -eq $null )                                                                         #terminating the script, if there are no workers to be processed
+    {
+    Time-Log ( "There are no workers to be processed, terminating the script" )
+    Exit
+    }
+
+$count= $list.Count
+Time-Log ( "Amount of workers to be processed: $count" )
+
+if ( Test-Path -Path $chck ) { $checked = Get-Content -Path $chkf }                            #geting the list of already checked workers - if one existes already
+
+####################################################################
+#core of the script
+   
+foreach ( $item in $list )                                                                     #looping through all the items on the list
+    {
+    if ( $item -notin $checked )                                                               #processing worker only if it hasn't been touched today
+        {
+        Add-Content -Path $chkf -Value $item                                                   #adding worker to the today's list of already processed items
+
+        if ( $item -in $bb ) { $console = "vc1" }                                              #loading the proper VCenter
+        if ( $item -in $lb ) { $console = "vc2" }
+       
+        try
+            {
+            Connect-VIServer $console                                                          #connecting to the proper console
+            Time-Log ( "Connected th the $console to process $item" )
+            }
+        catch
+            {
+            Time-Log ( "A problem appeared while trying to connect to $console" )              #logging if not connected
+            }
+
+        $var = Get-VM $item
+    
+        if ( $var.PowerState -eq "PoweredOn"  )                                                #reset the worker if found one up
+            {
+            try
+                {
+                Restart-VM -VM $var
+                Time-Log ( "$item has been rebooted" )
+                }
+            catch { Time-Log ( "Could not reboot $item" ) }                                    #logging if error appears
+            }
+    
+        if ( $var.PowerState -eq "PoweredOff" )                                                #booting worker if found one powered down
+            {
+            try
+                {
+                Start-VM -VM $var
+                Time-Log ( "$item has been booted" )
+                }
+            catch { Time-Log ( "Could not boot $item" ) }                                      #logging en error
+            }
+    
+        Start-Sleep -Seconds 180                                                               #waiting three minutes before checking if the worker has booted
+
+        if ( $var.PowerState -eq "PoweredOn"  ) { Time-Log ( "$item is up and running" ) }     #logging if the worker was powered on
+        else { Time-Log ( "Could not boot $item" ) }
+
+        try
+            {
+            Disconnect-VIServer -Confirm:$False                                                #disconnecting from the console
+            Time-Log ( "Disconnected from the $console" )
+            }
+        catch { Time-Log ("An error appeared when trying to disconnect from $console") }       #logging in case of an error
+        }
+    }
+    else                                                                                       #logging, if the worker was already processed today
+    {
+    Time-Log ( "$item has already been processed today, omiting the worker" )
+    }
+    
+####################################################################
+#junk
+<#
+$creds = Get-Credential
+Connect-VIServer UCLVWLBPRBVIC01.uclh201.net -Credential $creds -SaveCredentials				       #saving credentials to the VC so the script can connect without admin input
+#>
