@@ -1,0 +1,25 @@
+$location = "[...]"                                                                                             #location of the folder we use
+$list     = Get-Content -Path "$location\[...]"                                                                 #filename with the list of target servers
+
+foreach ( $server in $list )                                                                                    #looping through the list
+    { 
+    if ( Test-Connection -ComputerName $server -Quiet )                                                         #checking if the server responds
+        {
+        try {                                                                                                   #getting into the list of applications' registry keys
+            $item = Invoke-Command -ComputerName $server { Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Sort-Object -Property DisplayName }
+  
+            foreach ($record in $item)                                                                          #looping through the regkeys
+                { 
+                $appname =  $record.DisplayName                                                                 #get the applications' title
+                $version =  $record.DisplayVersion                                                              #get the applications' version
+                
+                if ( $record.InstallLocation -ne $null ) { $apppath =  $record.InstallLocation }                #get the directory of the application - if possible
+                else { $apppath = "no installation location in the registry" }
+    
+                Add-Content -Path "$location\result.csv" -Value "$server;$appname;$version;$apppath"            #saving the applications' details into the CSV file
+                }
+            }
+        catch { Add-Content -Path "$location\result.csv" -Value "$server; couldn't get the registry entries" }  #logging, if an error occured druing the checking
+        }
+    else { Add-Content -Path "$location\result.csv" -Value "$server; couldn't be contacted" }                   #logging if the server didn't reply to the ping
+    }
