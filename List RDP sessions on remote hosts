@@ -1,0 +1,11 @@
+$folder = "..."                                                             #directory
+$list   = Get-Content -Path "$folder\list.txt"                              #path to the list file
+$user   = "..."                                                             #samaccount name of the user we're looking after
+                                                                            #it would be the best to extact the list of computer objects from AD for the search
+$ErrorActionPreference = 'silentlycontinue'                                 #script won't scream when iterating through items without session left
+
+foreach ( $item in $list )                                                  #a loop iterating through the servers from the list
+    {
+    $test = qwinsta /server:$item                                           #list od RDP sessions is uploaded to the variable
+    if ( $test -match "$user" ) { Write-Host "$item has session" }          #if the specified user is on the checked computer, it will be notified
+    }
