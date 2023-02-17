@@ -1,0 +1,7 @@
+$list = Get-Content -Path "[...]"   #list of target servers
+
+foreach ( $item in $list )
+    {
+    Invoke-Command -ComputerName $item -ScriptBlock { Get-ItemProperty HKLM:\System\CurrentControlSet\services\KDC -Name KrbtgtFullPacSignature }
+    Invoke-Command -ComputerName $item -ScriptBlock { Get-ItemProperty HKLM:\System\CurrentControlSet\services\KDC -Name ApplyDefaultDomainPolicy }
+    }
